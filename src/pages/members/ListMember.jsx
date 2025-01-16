@@ -2,11 +2,13 @@ import React, { useEffect, useState } from "react";
 import { useFirestoreQuery } from "../../hooks/useFirestore/index";
 import { decryptData } from "../../services/encryptionUtils";
 import { Table, Tooltip } from "antd";
+import { useNavigate } from "react-router-dom";
 
 const ListMember = () => {
   const [memberList, setMemberList] = useState([]);
   const [loading, setLoading] = useState(false);
   const memberQuery = useFirestoreQuery();
+  const navigate = useNavigate();
 
   const decryptingData = (originalDataArray) => {
     return originalDataArray.map((originalData) => {
@@ -87,6 +89,11 @@ const ListMember = () => {
     },
   ];
 
+  const handleRowClick = (record) => {
+    console.log(record);
+    navigate("/club-members/view-member", { state: { ...record } });
+  };
+
   return (
     <div
       className="p-6 bg-white rounded-lg shadow-lg w-full"
@@ -100,6 +107,10 @@ const ListMember = () => {
           ...item,
         }))}
         loading={loading}
+        onRow={(record) => ({
+          onClick: () => handleRowClick(record),
+        })}
+        rowKey="id"
         pagination={{
           pageSize: 10, // 한 페이지에 보여줄 항목 수
           showSizeChanger: true, // 페이지 크기 선택 가능
