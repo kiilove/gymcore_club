@@ -15,6 +15,9 @@ const NewMember = () => {
     mainAddress: "",
     extraAddress: "",
     memo: "",
+    birthYear: "",
+    birthMonth: "",
+    birthDay: "",
     pic: "https://firebasestorage.googleapis.com/v0/b/gymcore-1.firebasestorage.app/o/asset%2Fdefault_avatar.jpg?alt=media&token=90543b81-c9e3-4983-a3ef-fd8014487f08",
   };
 
