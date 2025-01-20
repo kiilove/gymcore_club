@@ -49,12 +49,22 @@ export const useFormCoach = (formValue) => {
       : "";
 
     const cleanedValues = cleanedFormValues(updatedValues);
+    const createdAt = dayjs(new Date()).format("YYYY-MM-DD HH:mm:ss");
+    const bodyState = [
+      {
+        height: cleanedValues.height || "",
+        weight: cleanedValues.weight || "",
+        recordDate: createdAt,
+      },
+    ];
+    delete cleanedValues.height;
+    delete cleanedValues.weight;
+    cleanedValues.bodyState = bodyState;
     const encryptedName = encryptData(updatedValues.name);
     const encryptedPhone = encryptData(updatedValues.phone);
     const encryptedMainAddress = encryptData(updatedValues.mainAddress);
     const encryptedExtraAddress = encryptData(updatedValues.extraAddress);
     const encryptedZoneCode = encryptData(updatedValues.zoneCode);
-    const createdAt = dayjs(new Date()).format("YYYY-MM-DD HH:mm:ss");
 
     return {
       ...cleanedValues,
