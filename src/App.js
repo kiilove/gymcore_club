@@ -7,6 +7,7 @@ import ListMember from "./pages/members/ListMember";
 import NewCoach from "./pages/coaches/NewCoach";
 import ListCoach from "./pages/coaches/ListCoach";
 import ViewMember from "./pages/members/ViewMember";
+import ListClasses from "./pages/classes/ListClasses";
 
 const App = () => {
   sessionStorage.setItem("userGroup", "admin");
@@ -34,6 +35,10 @@ const App = () => {
           <Route
             path="/club-coaches/list-coach"
             element={<ClubHome children={<ListCoach />} />}
+          />
+          <Route
+            path="/club-classes/list-classes"
+            element={<ClubHome children={<ListClasses />} />}
           />
         </Routes>
       </Router>

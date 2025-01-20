@@ -61,6 +61,29 @@ const menuItems = [
       },
     ],
   },
+  {
+    key: "/club-classes",
+    icon: <UserOutlined />,
+    label: "수업 관리",
+    allowedGroups: ["admin", "staff", "user"],
+    children: [
+      {
+        key: "/club-classes/new-classes", // 새 수업 추가
+        label: "수업 등록",
+        allowedGroups: ["admin", "staff"],
+      },
+      // {
+      //   key: "/customer-management/customer-generator", // 가상 고객 추가
+      //   label: "가상 고객 추가",
+      //   allowedGroups: ["admin", "staff"],
+      // },
+      {
+        key: "/club-classes/list-classes", // 수업 리스트
+        label: "수업 목록",
+        allowedGroups: ["admin", "staff", "user"],
+      },
+    ],
+  },
 
   {
     key: "/reservation-management",
