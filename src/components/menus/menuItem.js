@@ -125,9 +125,9 @@ const menuItems = [
     allowedGroups: ["admin"],
   },
   {
-    key: "/admin-page",
+    key: "/club-manager",
     icon: <SettingOutlined />,
-    label: "관리자 페이지",
+    label: "클럽 설정",
     allowedGroups: ["admin"],
   },
 ];
