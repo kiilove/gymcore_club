@@ -1,107 +1,116 @@
-import { Card, Col, List, Row, Switch, Tabs } from "antd";
 import React, { useEffect, useState } from "react";
+import { Row, Col } from "antd";
+import CategoryList from "./CategoryList";
+import FilterPanel from "./FilterPanel";
+import ClassCardList from "./ClassCardList";
+import { useFilterClasses } from "./useFilterClasses";
 
-const FormClasses = ({ classesData, onSave }) => {
-  const [classesGroup, setClassesGroup] = useState([]);
-  const [classesSubItem, setClassesSubItem] = useState([]);
-  const [classesSubTabs, setClassesSubTabs] = useState([]);
+const FormClasses = ({ classesData, onAdd, onUpdate, onDelete }) => {
   const [currentGroupTitle, setCurrentGroupTitle] = useState(undefined);
 
-  const renderClassItem = (data = [], isActive) => {
-    if (data.length === 0) {
-      return;
-    }
+  // 필터 상태 객체로 관리
+  const [filterState, setFilterState] = useState({
+    activeChargeType: [],
+    activeTitleFilter: [],
+    appliedSearchText: "",
+    nestedSearch: false,
+  });
 
-    const renderItem = data?.map((item, idx) => {
-      const { title, description, chargeType, TotalSessions, price } = item;
+  // 카테고리 리스트
+  const categories = classesData ? Object.keys(classesData) : [];
 
-      return (
-        <Card
-          title={
-            <p style={{ fontSize: 13 }} className="px-2">
-              {title}
-            </p>
-          }
-          size="small"
-          style={{ width: "250px", height: "150px" }}
-          extra={
-            <div className="flex gap-x-2 justify-center items-center">
-              <p style={{ fontSize: 12 }}>활성화</p>
-              <Switch size="small" checked={isActive} />
-            </div>
-          }
-        >
-          <div
-            className="flex flex-col w-full h-full p-2 text-gray-600 gap-y-1"
-            style={{ fontSize: 13 }}
-          >
-            <p>{description}</p>
-            <p>차감방식: {chargeType}</p>
-            <p>가격: {parseInt(price)?.toLocaleString()}원</p>
-          </div>
-        </Card>
+  // 선택된 카테고리의 원본 클래스 목록
+  const originalClasses =
+    currentGroupTitle && classesData[currentGroupTitle]
+      ? classesData[currentGroupTitle].classes
+      : [];
+
+  // 필터된 클래스 목록 (커스텀 훅 사용)
+  const filteredClasses = useFilterClasses(originalClasses, filterState);
+
+  // 활성화 토글: onSave 대신 onUpdate 콜백을 호출하여 isActive 업데이트
+  const handleToggle = (parentTitle, parentId, childrenId) => {
+    const category = classesData[parentTitle];
+    if (category) {
+      const targetClass = category.classes.find(
+        (item) => item.id === childrenId
       );
-    });
-
-    return (
-      <div className="flex justify-start items-center w-full gap-2 flex-wrap">
-        {renderItem}
-      </div>
-    );
+      if (targetClass) {
+        const newActiveValue = !targetClass.isActive;
+        targetClass.isActive = newActiveValue; // 로컬 데이터 업데이트
+        // onUpdate 콜백 호출 (id와 변경된 값 객체 전달)
+        if (onUpdate) onUpdate(childrenId, { isActive: newActiveValue });
+      }
+    }
   };
-  useEffect(() => {
-    if (!classesData) {
-      return;
-    }
-    setClassesGroup(() => Object.keys(classesData));
-  }, [classesData]);
 
-  useEffect(() => {
-    if (currentGroupTitle === undefined && !classesData) {
-      return;
-    }
-    setClassesSubItem(() => classesData[currentGroupTitle]);
-    const tabsItems = classesData[currentGroupTitle]?.map((item, idx) => {
-      const { title: label, id: key, classes, isActive } = item;
-      const children = renderClassItem(classes, isActive);
-      return { label, key, children };
+  const handleFilterChange = ({ type, value }) => {
+    setFilterState((prev) => {
+      switch (type) {
+        case "charge":
+          return {
+            ...prev,
+            activeChargeType: prev.activeChargeType.includes(value)
+              ? prev.activeChargeType.filter((v) => v !== value)
+              : [...prev.activeChargeType, value],
+          };
+        case "title":
+          return {
+            ...prev,
+            activeTitleFilter: prev.activeTitleFilter.includes(value)
+              ? prev.activeTitleFilter.filter((v) => v !== value)
+              : [...prev.activeTitleFilter, value],
+          };
+        case "search":
+          return { ...prev, appliedSearchText: value };
+        case "nested":
+          return { ...prev, nestedSearch: value };
+        default:
+          return prev;
+      }
     });
+  };
 
-    setClassesSubTabs(() => tabsItems);
-  }, [currentGroupTitle]);
+  // 카테고리 선택 시 필터 초기화
+  const handleCategorySelect = (category) => {
+    setCurrentGroupTitle(category);
+    setFilterState({
+      activeChargeType: [],
+      activeTitleFilter: [],
+      appliedSearchText: "",
+      nestedSearch: false,
+    });
+  };
 
   return (
     <Row>
       <Col span={4} className="p-2">
-        <List
-          itemLayout="horizontal"
-          size="small"
-          dataSource={classesGroup}
-          renderItem={(item, idx) => (
-            <List.Item
-              className="hover:cursor-pointer "
-              onClick={() => {
-                setCurrentGroupTitle(item);
-              }}
-            >
-              <div
-                className={
-                  item === currentGroupTitle
-                    ? "flex w-full h-full px-2 bg-blue-800 text-white hover:bg-blue-300 hover:text-white rounded-lg justify-start items-center"
-                    : "flex w-full h-full px-2 hover:bg-blue-500 hover:text-white rounded-lg justify-start items-center"
-                }
-                style={{ height: "40px" }}
-              >
-                <p className="px-2">{item}</p>
-              </div>
-            </List.Item>
-          )}
+        <CategoryList
+          categories={categories}
+          currentCategory={currentGroupTitle}
+          onSelect={handleCategorySelect}
         />
       </Col>
-      <Col span={18}>
-        <div className="flex p-4 ">
-          <Tabs type="card" items={classesSubTabs} className="w-full h-full" />
-        </div>
+      <Col span={18} className="p-4">
+        {currentGroupTitle ? (
+          <>
+            <FilterPanel
+              originalClasses={originalClasses}
+              filterState={filterState}
+              onFilterChange={handleFilterChange}
+            />
+            <ClassCardList
+              classes={filteredClasses}
+              parentTitle={currentGroupTitle}
+              parentId={classesData[currentGroupTitle].id}
+              onToggle={handleToggle}
+              onUpdate={onUpdate}
+              onDelete={onDelete}
+            />
+          </>
+        ) : (
+          <p>카테고리를 선택해주세요.</p>
+        )}
       </Col>
     </Row>
   );
