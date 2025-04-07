@@ -1,0 +1,37 @@
+{
+  "short_name": "GymCore",
+  "name": "GymCore - 피트니스 클럽 시스템",
+  "description": "클럽 회원, 코치, 상품 및 결제를 관리하는 올인원 솔루션",
+  "icons": [
+    {
+      "src": "GYMCORE_ICON.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "GYMCORE_192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "GYMCORE_512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    },
+    {
+      "src": "GYMCORE_192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "maskable"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#3B82F6",
+  "background_color": "#ffffff",
+  "orientation": "portrait",
+  "categories": ["fitness", "health", "business"],
+  "lang": "ko-KR",
+  "dir": "ltr",
+  "prefer_related_applications": false
+}
