@@ -1,21 +1,23 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Grid, List, Trash2, Plus, Filter, MoreVertical } from "lucide-react";
 import PageTitle from "../../components/Shared/PageTitle";
 import Button from "../../components/Shared/Button";
 import MembersFilter from "../../components/Members/MembersFilter";
 import MembersTable from "../../components/Members/MembersTable";
 import MembersGrid from "../../components/Members/MembersGrid";
-import { members } from "../../datas/mockData";
 import { filterMembers, sortMembers } from "../../utils/memberUtils";
 import { useToast } from "../../hooks/use-toast";
 import { useModal } from "../../hooks/use-modal";
 import { FaUsers } from "react-icons/fa";
 
+// Firebase 관련 커스텀 훅 (개선된 useFirestore 사용)
+import { useFirestore } from "../../hooks/useFirestore";
+import { useBatchOperations } from "../../hooks/useBatchOperations";
+
 const Members = () => {
-  const [filteredMembers, setFilteredMembers] = useState([]);
   const [filters, setFilters] = useState({
     name: "",
     status: "",
@@ -31,28 +33,37 @@ const Members = () => {
   const [isMobile, setIsMobile] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const mobileMenuRef = useRef(null);
+  // 필터링 및 정렬된 회원 목록 상태
+  const [filteredMembers, setFilteredMembers] = useState([]);
 
   const { toast } = useToast();
   const { showModal } = useModal();
+  const navigate = useNavigate();
 
-  // 모바일 감지 및 화면 크기 변경 감지
+  // Firebase hooks
+  const {
+    documents: firebaseMembers,
+    error,
+    isLoading,
+    subscribeToCollection,
+    deleteDocument,
+  } = useFirestore("members");
+
+  const { batchDeleteDocuments, isLoading: isBatchLoading } =
+    useBatchOperations();
+
+  // 모바일 화면 감지 및 화면 크기 변경 처리
   useEffect(() => {
     const checkIsMobile = () => {
       const mobile = window.innerWidth < 768;
       setIsMobile(mobile);
-
-      // 모바일에서는 자동으로 그리드 뷰로 설정
       if (mobile && viewMode !== "grid") {
         setViewMode("grid");
       }
     };
 
-    // 초기 로드 시 체크
     checkIsMobile();
-
-    // 화면 크기 변경 시 체크
     window.addEventListener("resize", checkIsMobile);
-
     return () => window.removeEventListener("resize", checkIsMobile);
   }, [viewMode]);
 
@@ -66,16 +77,40 @@ const Members = () => {
         setShowMobileMenu(false);
       }
     };
-
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Firestore 실시간 구독 설정 (개선된 subscribeToCollection 사용)
   useEffect(() => {
-    let result = filterMembers(members, filters);
+    const conditions = [];
+    if (filters.name) {
+      conditions.push(["name", ">=", filters.name]);
+      conditions.push(["name", "<=", filters.name + "\uf8ff"]);
+    }
+    if (filters.status) {
+      conditions.push(["status", "==", filters.status]);
+    }
+    if (filters.membershipType) {
+      conditions.push(["membershipType", "==", filters.membershipType]);
+    }
+
+    const orderByField = [sortConfig.sortBy, sortConfig.sortOrder];
+    const unsubscribe = subscribeToCollection(conditions, orderByField);
+
+    return () => unsubscribe();
+  }, [filters, sortConfig, subscribeToCollection]);
+
+  // 필터링 및 정렬 적용: Firestore에서 받은 데이터를 기반으로 필터 및 정렬 처리
+  useEffect(() => {
+    if (!firebaseMembers) return;
+    let result = [...firebaseMembers];
+    if (filters.name || filters.status || filters.membershipType) {
+      result = filterMembers(result, filters);
+    }
     result = sortMembers(result, sortConfig.sortBy, sortConfig.sortOrder);
     setFilteredMembers(result);
-  }, [filters, sortConfig]);
+  }, [firebaseMembers, filters, sortConfig]);
 
   const handleFilter = (newFilters) => {
     setFilters(newFilters);
@@ -103,22 +138,22 @@ const Members = () => {
       message: `선택한 ${selectedMembers.length}명의 회원을 삭제하시겠습니까?`,
       confirmText: "삭제",
       cancelText: "취소",
-      onConfirm: () => {
-        // 실제 구현에서는 API 호출 등을 통해 데이터를 삭제
-        console.log("삭제할 회원 ID:", selectedMembers);
-
-        // 삭제 후 목록 업데이트 (실제 구현에서는 API 응답 후 처리)
-        const updatedMembers = filteredMembers.filter(
-          (member) => !selectedMembers.includes(member.id)
-        );
-        setFilteredMembers(updatedMembers);
-        setSelectedMembers([]);
-
-        toast({
-          title: "삭제 완료",
-          description: `${selectedMembers.length}명의 회원이 삭제되었습니다.`,
-          variant: "success",
-        });
+      onConfirm: async () => {
+        try {
+          await batchDeleteDocuments("members", selectedMembers);
+          setSelectedMembers([]);
+          toast({
+            title: "삭제 완료",
+            description: `${selectedMembers.length}명의 회원이 삭제되었습니다.`,
+            variant: "success",
+          });
+        } catch (error) {
+          toast({
+            title: "삭제 실패",
+            description: error.message,
+            variant: "error",
+          });
+        }
       },
     });
   };
@@ -175,6 +210,7 @@ const Members = () => {
                     setShowMobileMenu(false);
                   }}
                   className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
+                  disabled={isBatchLoading}
                 >
                   <Trash2 className="h-4 w-4 mr-2" />
                   {selectedMembers.length}명 삭제
@@ -239,6 +275,7 @@ const Members = () => {
             size="sm"
             onClick={handleDeleteSelected}
             className="flex items-center gap-1"
+            disabled={isBatchLoading}
           >
             <Trash2 className="h-4 w-4" />
             {selectedMembers.length}명 삭제
@@ -258,6 +295,9 @@ const Members = () => {
     );
   };
 
+  // 필터/정렬 결과가 적용된 회원 목록을 렌더링 데이터로 사용
+  const membersToDisplay = firebaseMembers ? filteredMembers : [];
+
   return (
     <div>
       <div className="flex justify-between items-center">
@@ -272,20 +312,24 @@ const Members = () => {
       {showFilter && <MembersFilter onFilter={handleFilter} />}
 
       <div className="bg-gray-50 dark:bg-gray-900 rounded-lg shadow-md overflow-hidden mt-6 py-4">
-        {viewMode === "table" ? (
+        {isLoading ? (
+          <div className="text-center py-10">데이터를 불러오는 중...</div>
+        ) : error ? (
+          <div className="text-center py-10 text-red-500">
+            오류가 발생했습니다: {error}
+          </div>
+        ) : viewMode === "table" ? (
           <MembersTable
-            members={filteredMembers}
+            members={membersToDisplay}
             onSort={handleSort}
             sortConfig={sortConfig}
             onSelectItems={handleSelectItems}
           />
         ) : (
-          <div>
-            <MembersGrid
-              members={filteredMembers}
-              onSelectItems={handleSelectItems}
-            />
-          </div>
+          <MembersGrid
+            members={membersToDisplay}
+            onSelectItems={handleSelectItems}
+          />
         )}
       </div>
     </div>

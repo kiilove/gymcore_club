@@ -1,33 +1,83 @@
 "use client";
+
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { FaUsers } from "react-icons/fa";
 import PageTitle from "../../components/Shared/PageTitle";
-import MembersForm from "../../components/Members/MembersForm";
+import MembersStepperForm from "../../components/Members/MembersStepperForm";
+import { useFirestore } from "../../hooks/useFirestore";
 import { useToast } from "../../hooks/use-toast";
 
 const MembersAdd = () => {
   const navigate = useNavigate();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { addDocument, error } = useFirestore("members");
   const { toast } = useToast();
 
-  const handleSubmit = (formData) => {
-    // 실제 구현에서는 API 호출 등을 통해 데이터를 저장
-    console.log("회원 등록 데이터:", formData);
+  const handleSubmit = async (data, step, memberId = null) => {
+    setIsSubmitting(true);
+    try {
+      // 단계별 처리
+      if (step === "profile") {
+        // 1단계: 회원 기본 정보 저장
+        console.log("프로필 데이터 저장:", data);
 
-    // 성공 메시지 표시
-    toast({
-      title: "회원 등록 완료",
-      description: `${formData.name} 회원이 등록되었습니다.`,
-      variant: "success",
-    });
+        const memberData = {
+          ...data,
+          createdAt: new Date(),
+        };
 
-    // 등록 후 회원 목록 페이지로 이동
-    navigate("/members");
+        const newMember = await addDocument(memberData);
+
+        if (!newMember) {
+          throw new Error("회원 정보 저장에 실패했습니다.");
+        }
+
+        toast({
+          title: "기본 정보 저장 완료",
+          description: "신체 정보를 입력해주세요.",
+          variant: "success",
+        });
+
+        setIsSubmitting(false);
+        return newMember; // 다음 단계에서 사용할 회원 ID 포함
+      } else if (step === "complete" && memberId) {
+        // 완료 버튼 클릭 - 회원 상세 페이지로 이동
+        toast({
+          title: "회원 등록 완료",
+          description: "회원 정보가 저장되었습니다.",
+          variant: "success",
+        });
+
+        navigate(`/members/detail/${memberId}`);
+      }
+
+      setIsSubmitting(false);
+    } catch (err) {
+      console.error("회원 등록 중 오류 발생:", err);
+      toast({
+        title: "회원 등록 실패",
+        description: error || err.message,
+        variant: "error",
+      });
+      setIsSubmitting(false);
+      throw err;
+    }
   };
 
   return (
     <div>
-      <PageTitle title="회원 등록" subtitle="새로운 회원 정보를 등록합니다." />
-
-      <MembersForm onSubmit={handleSubmit} />
+      <PageTitle
+        title="회원 등록"
+        subtitle="새로운 회원 정보를 입력하여 등록합니다."
+        icon={FaUsers}
+      />
+      <div className="mt-6">
+        <MembersStepperForm
+          onSubmit={handleSubmit}
+          isSubmitting={isSubmitting}
+        />
+      </div>
     </div>
   );
 };

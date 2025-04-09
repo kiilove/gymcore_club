@@ -7,15 +7,20 @@ import { formatDateForInput } from "../../utils/dateUtils";
 import MemberProfileFormTab from "./Tabs/MemberProfileFormTab";
 import MemberBodyInfoFormTab from "./Tabs/MemberBodyInfoFormTab";
 
-const MembersForm = ({ member, onSubmit, isEditing = false }) => {
+const MembersForm = ({
+  member,
+  onSubmit,
+  isEditing = false,
+  isSubmitting = false,
+}) => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState("profile");
+  const [activeTab, setActiveTab] = useState("profile"); // "body"에서 "profile"로 변경
   const [errors, setErrors] = useState({});
   const [formData, setFormData] = useState({
     // 프로필 정보
     name: "",
     gender: "남성",
-    age: "",
+    birthdate: "", // age 대신 birthdate 사용
     phone: "",
     email: "",
     membershipType: "1개월 정기권",
@@ -28,6 +33,11 @@ const MembersForm = ({ member, onSubmit, isEditing = false }) => {
     weight: "",
     bodyFat: "",
     bmi: "",
+    date: formatDateForInput(new Date()), // 측정일 추가
+    notes: "", // 메모 추가
+    writtenAt: formatDateForInput(new Date()), // 작성일 추가
+    writtenBy: "", // 작성자 추가
+    bodyInfoHistory: [], // 신체정보 히스토리 배열
   });
 
   useEffect(() => {
@@ -36,7 +46,7 @@ const MembersForm = ({ member, onSubmit, isEditing = false }) => {
         // 프로필 정보
         name: member.name || "",
         gender: member.gender || "남성",
-        age: member.age || "",
+        birthdate: member.birthdate || "", // age 대신 birthdate 사용
         phone: member.phone || "",
         email: member.email || "",
         membershipType: member.membershipType || "1개월 정기권",
@@ -120,14 +130,13 @@ const MembersForm = ({ member, onSubmit, isEditing = false }) => {
       weight: Number(formData.weight) || 0,
       bodyFat: Number(formData.bodyFat) || 0,
       bmi: Number(formData.bmi) || 0,
-      history: member?.bodyInfo?.history || [],
     };
 
     // 제출할 데이터 구성
     const submitData = {
       name: formData.name,
       gender: formData.gender,
-      age: formData.age ? Number(formData.age) : "",
+      birthdate: formData.birthdate ? formData.birthdate : "", // age 대신 birthdate 사용
       phone: formData.phone,
       email: formData.email,
       membershipType: formData.membershipType,
@@ -135,8 +144,6 @@ const MembersForm = ({ member, onSubmit, isEditing = false }) => {
       endDate: formData.endDate,
       status: formData.status,
       bodyInfo: bodyInfo,
-      consultations: member?.consultations || [],
-      payments: member?.payments || [],
     };
 
     onSubmit(submitData);
@@ -187,7 +194,11 @@ const MembersForm = ({ member, onSubmit, isEditing = false }) => {
         );
       case "body":
         return (
-          <MemberBodyInfoFormTab formData={formData} onChange={handleChange} />
+          <MemberBodyInfoFormTab
+            formData={formData}
+            onChange={handleChange}
+            isEditing={isEditing}
+          />
         );
       default:
         return (
@@ -213,11 +224,12 @@ const MembersForm = ({ member, onSubmit, isEditing = false }) => {
           type="button"
           variant="secondary"
           onClick={() => navigate("/members")}
+          disabled={isSubmitting}
         >
           취소
         </Button>
-        <Button type="submit" variant="primary">
-          {isEditing ? "수정" : "등록"}
+        <Button type="submit" variant="primary" disabled={isSubmitting}>
+          {isSubmitting ? "처리 중..." : isEditing ? "수정" : "등록"}
         </Button>
       </div>
     </form>

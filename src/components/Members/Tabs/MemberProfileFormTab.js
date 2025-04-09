@@ -1,9 +1,12 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { formatDateForInput } from "../../../utils/dateUtils";
+import { calculateAge } from "../../../utils/memberUtils";
 
 const MemberProfileFormTab = ({ formData, onChange, errors }) => {
+  const [calculatedAge, setCalculatedAge] = useState(null);
+
   const calculateEndDate = (startDate, membershipType) => {
     if (!startDate) return "";
 
@@ -30,15 +33,29 @@ const MemberProfileFormTab = ({ formData, onChange, errors }) => {
     return formatDateForInput(end);
   };
 
+  // 생년월일이 변경될 때 나이 계산
+  useEffect(() => {
+    if (formData.birthdate) {
+      const age = calculateAge(formData.birthdate);
+      setCalculatedAge(age);
+    } else {
+      setCalculatedAge(null);
+    }
+  }, [formData.birthdate]);
+
   useEffect(() => {
     if (formData.startDate && formData.membershipType) {
       const endDate = calculateEndDate(
         formData.startDate,
         formData.membershipType
       );
-      onChange({ target: { name: "endDate", value: endDate } });
+
+      // Only update if the calculated end date is different from the current one
+      if (endDate !== formData.endDate) {
+        onChange({ target: { name: "endDate", value: endDate } });
+      }
     }
-  }, [formData.startDate, formData.membershipType, onChange]);
+  }, [formData.startDate, formData.membershipType]); // Remove onChange from dependencies
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -88,19 +105,23 @@ const MemberProfileFormTab = ({ formData, onChange, errors }) => {
 
       <div>
         <label
-          htmlFor="age"
+          htmlFor="birthdate"
           className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
         >
-          나이
+          생년월일{" "}
+          {calculatedAge !== null && (
+            <span className="text-sm text-gray-500 ml-2">
+              (만 {calculatedAge}세)
+            </span>
+          )}
         </label>
         <input
-          type="number"
-          id="age"
-          name="age"
-          value={formData.age}
+          type="date"
+          id="birthdate"
+          name="birthdate"
+          value={formData.birthdate || ""}
           onChange={onChange}
-          min="1"
-          max="120"
+          max="9999-12-31" // Ensure only 4-digit years are accepted
           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
         />
       </div>

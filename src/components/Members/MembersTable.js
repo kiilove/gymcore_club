@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronUp, ChevronDown, MoreHorizontal } from "lucide-react";
 import { formatDate, getMembershipStatus } from "../../utils/dateUtils";
+import { calculateAge } from "../../utils/memberUtils";
 
 const MembersTable = ({ members, onSort, sortConfig = {}, onSelectItems }) => {
   const navigate = useNavigate();
@@ -40,6 +41,7 @@ const MembersTable = ({ members, onSort, sortConfig = {}, onSelectItems }) => {
     }
 
     navigate(`/members/detail/${id}`);
+    console.log(`/members/detail/${id}`);
   };
 
   const handleCheckboxChange = (e, id) => {
@@ -94,6 +96,8 @@ const MembersTable = ({ members, onSort, sortConfig = {}, onSelectItems }) => {
       <div className="space-y-4">
         {members.map((member) => {
           const membershipStatus = getMembershipStatus(member.endDate);
+          // 나이 계산
+          const age = member.birthdate ? calculateAge(member.birthdate) : null;
 
           return (
             <div
@@ -118,7 +122,8 @@ const MembersTable = ({ members, onSort, sortConfig = {}, onSelectItems }) => {
                   {member.name}
                 </h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                  {member.gender}, {member.age}세
+                  {member.gender}
+                  {age !== null && `, ${age}세`}
                 </p>
               </div>
 
@@ -260,6 +265,10 @@ const MembersTable = ({ members, onSort, sortConfig = {}, onSelectItems }) => {
           <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
             {members.map((member) => {
               const membershipStatus = getMembershipStatus(member.endDate);
+              // 나이 계산
+              const age = member.birthdate
+                ? calculateAge(member.birthdate)
+                : null;
 
               return (
                 // 데스크톱 테이블 row 클릭 이벤트 수정
@@ -284,7 +293,8 @@ const MembersTable = ({ members, onSort, sortConfig = {}, onSelectItems }) => {
                       {member.name}
                     </div>
                     <div className="text-sm text-gray-500 dark:text-gray-400">
-                      {member.gender}, {member.age}세
+                      {member.gender}
+                      {age !== null && `, ${age}세`}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { User, Calendar, Phone, Mail } from "lucide-react";
 import { formatDate, getMembershipStatus } from "../../utils/dateUtils";
+import { calculateAge } from "../../utils/memberUtils";
 
 const MembersGrid = ({ members, onSelectItems }) => {
   const navigate = useNavigate();
@@ -52,6 +53,8 @@ const MembersGrid = ({ members, onSelectItems }) => {
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       {members.map((member) => {
         const membershipStatus = getMembershipStatus(member.endDate);
+        // 나이 계산
+        const age = member.birthdate ? calculateAge(member.birthdate) : null;
 
         return (
           <div
@@ -83,7 +86,8 @@ const MembersGrid = ({ members, onSelectItems }) => {
                   {member.name}
                 </h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                  {member.gender}, {member.age}세
+                  {member.gender}
+                  {age !== null && `, ${age}세`}
                 </p>
               </div>
 
